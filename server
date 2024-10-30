@@ -1,0 +1,52 @@
+import psutil
+import time
+from ping3 import ping
+import speedtest
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+API_TOKEN = 'YOUR_BOT_TOKEN'
+
+# Настройка бота
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+@dp.message_handler(commands=['server'])
+async def server_info(message: types.Message):
+    # Информация о RAM
+    memory = psutil.virtual_memory()
+    total_memory = round(memory.total / (1024 ** 3), 2)  # ГБ
+    used_memory = round(memory.used / (1024 ** 3), 2)    # ГБ
+    free_memory = round(memory.available / (1024 ** 3), 2)  # ГБ
+
+    # Пинг
+    ping_time = ping('8.8.8.8')  # Пинг к Google DNS
+    ping_ms = round(ping_time * 1000, 2) if ping_time else "Не удалось получить пинг"
+
+    # Скорость интернета
+    st = speedtest.Speedtest()
+    st.get_best_server()
+    download_speed = round(st.download() / (1024 ** 2), 2)  # Мбит/с
+    upload_speed = round(st.upload() / (1024 ** 2), 2)  # Мбит/с
+
+    # Время работы сервера
+    uptime_seconds = round(time.time() - psutil.boot_time())
+    uptime = f"{uptime_seconds // 3600}ч {uptime_seconds % 3600 // 60}м {uptime_seconds % 60}с"
+
+    # Формирование сообщения
+    response = (
+        f"**Информация о сервере:**\n\n"
+        f"**Оперативная память:**\n"
+        f"Всего: {total_memory} ГБ\nИспользовано: {used_memory} ГБ\nСвободно: {free_memory} ГБ\n\n"
+        f"**Пинг:** {ping_ms} ms\n\n"
+        f"**Скорость интернета:**\n"
+        f"Скорость загрузки: {download_speed} Мбит/с\nСкорость отдачи: {upload_speed} Мбит/с\n\n"
+        f"**Время работы сервера:** {uptime}"
+    )
+
+    # Отправка сообщения
+    await message.reply(response, parse_mode="Markdown")
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
+    
