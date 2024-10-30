@@ -27,13 +27,12 @@ async def execute_terminal_command(message: types.Message):
         # Выполнение команды в терминале
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
-        # Формируем ответ
-        if result.returncode == 0:
-            output = result.stdout or "Команда выполнена без вывода."
-        else:
-            output = f"Ошибка:\n{result.stderr}"
-            
-        # Отправляем ответ в чат
+        # Формируем вывод
+        output = result.stdout if result.stdout else result.stderr
+        if not output:
+            output = "Команда выполнена без вывода."
+        
+        # Отправляем результат в чат
         await message.reply(f"```\n{output}\n```", parse_mode="Markdown")
     
     except Exception as e:
