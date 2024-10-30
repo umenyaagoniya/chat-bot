@@ -1,0 +1,43 @@
+import subprocess
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+API_TOKEN = 'YOUR_BOT_TOKEN'
+ADMIN_ID = 123456789  # Замените на ваш Telegram ID
+
+# Настройка бота
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+@dp.message_handler(commands=['terminal'])
+async def execute_terminal_command(message: types.Message):
+    # Проверка доступа по ID администратора
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("У вас нет доступа к этой команде.")
+        return
+    
+    # Получаем команду из сообщения
+    command = message.text[len('/terminal '):].strip()
+    
+    if not command:
+        await message.reply("Пожалуйста, укажите команду для выполнения.")
+        return
+    
+    try:
+        # Выполнение команды в терминале
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Формируем ответ
+        if result.returncode == 0:
+            output = result.stdout or "Команда выполнена без вывода."
+        else:
+            output = f"Ошибка:\n{result.stderr}"
+            
+        # Отправляем ответ в чат
+        await message.reply(f"```\n{output}\n```", parse_mode="Markdown")
+    
+    except Exception as e:
+        await message.reply(f"Произошла ошибка при выполнении команды: {e}")
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
