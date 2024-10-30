@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 
 API_TOKEN = 'YOUR_BOT_TOKEN'
+ADMIN_ID = 123456789  # Замените на ваш Telegram ID (ID создателя бота)
 
 # Настройка бота
 bot = Bot(token=API_TOKEN)
@@ -13,11 +14,19 @@ dp = Dispatcher(bot)
 
 @dp.message_handler(commands=['server'])
 async def server_info(message: types.Message):
+    # Проверка, является ли пользователь администратором
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("У вас нет доступа к этой команде.")
+        return
+
     # Информация о RAM
     memory = psutil.virtual_memory()
     total_memory = round(memory.total / (1024 ** 3), 2)  # ГБ
     used_memory = round(memory.used / (1024 ** 3), 2)    # ГБ
     free_memory = round(memory.available / (1024 ** 3), 2)  # ГБ
+
+    # Загрузка процессора
+    cpu_percent = psutil.cpu_percent(interval=1)
 
     # Пинг
     ping_time = ping('8.8.8.8')  # Пинг к Google DNS
@@ -33,14 +42,24 @@ async def server_info(message: types.Message):
     uptime_seconds = round(time.time() - psutil.boot_time())
     uptime = f"{uptime_seconds // 3600}ч {uptime_seconds % 3600 // 60}м {uptime_seconds % 60}с"
 
+    # Использование диска
+    disk = psutil.disk_usage('/')
+    total_disk = round(disk.total / (1024 ** 3), 2)  # ГБ
+    used_disk = round(disk.used / (1024 ** 3), 2)    # ГБ
+    free_disk = round(disk.free / (1024 ** 3), 2)    # ГБ
+    disk_percent = disk.percent
+
     # Формирование сообщения
     response = (
         f"**Информация о сервере:**\n\n"
         f"**Оперативная память:**\n"
         f"Всего: {total_memory} ГБ\nИспользовано: {used_memory} ГБ\nСвободно: {free_memory} ГБ\n\n"
+        f"**Загрузка процессора:** {cpu_percent}%\n\n"
         f"**Пинг:** {ping_ms} ms\n\n"
         f"**Скорость интернета:**\n"
         f"Скорость загрузки: {download_speed} Мбит/с\nСкорость отдачи: {upload_speed} Мбит/с\n\n"
+        f"**Использование диска:**\n"
+        f"Всего: {total_disk} ГБ\nИспользовано: {used_disk} ГБ\nСвободно: {free_disk} ГБ ({disk_percent}%)\n\n"
         f"**Время работы сервера:** {uptime}"
     )
 
@@ -49,4 +68,3 @@ async def server_info(message: types.Message):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
-    
