@@ -1,0 +1,45 @@
+import os
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from aiogram.types import ContentType
+
+API_TOKEN = 'YOUR_BOT_TOKEN'
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+
+# Создаем папку для загрузок, если она не существует
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# Команда /upload для загрузки любого файла
+@dp.message_handler(commands=['upload'])
+async def upload_file(message: types.Message):
+    if message.reply_to_message and message.reply_to_message.document:
+        document = message.reply_to_message.document
+        file_id = document.file_id
+        file_name = document.file_name
+
+        # Загружаем файл
+        file = await bot.get_file(file_id)
+        await bot.download_file(file.file_path, f"uploads/{file_name}")
+        await message.reply(f"Файл загружен как {file_name} в папку 'uploads'.")
+    else:
+        await message.reply("Команда /upload должна быть использована в ответ на сообщение с файлом.")
+
+# Команда /download для отправки файла
+@dp.message_handler(commands=['download'])
+async def download_file(message: types.Message):
+    command_args = message.get_args()
+    if not command_args:
+        await message.reply("Пожалуйста, укажите название файла после команды /download.")
+        return
+
+    file_path = f"uploads/{command_args}"
+    if os.path.isfile(file_path):
+        await message.reply_document(open(file_path, "rb"))
+    else:
+        await message.reply("Файл не найден. Убедитесь, что название файла указано правильно.")
+
+# Запуск бота
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
